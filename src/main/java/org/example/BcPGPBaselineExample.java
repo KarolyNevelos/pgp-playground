@@ -37,35 +37,37 @@ public class BcPGPBaselineExample {
         spGen.setSignerUserID(false, "signer@example.com");
         sigGen.setHashedSubpackets(spGen.generate());
 
-        // STEP 3️⃣ — Prepare data: literal → compressed → encrypted
+        // STEP 3️⃣ — Sign literal data (no compression)
         ByteArrayOutputStream literalOut = new ByteArrayOutputStream();
+        PGPLiteralDataGenerator literalGen = new PGPLiteralDataGenerator();
 
-        // Compress data (optional but common)
-        PGPCompressedDataGenerator compressor =
-                new PGPCompressedDataGenerator(CompressionAlgorithmTags.UNCOMPRESSED);
+        OutputStream litOut = literalGen.open(
+                literalOut,
+                PGPLiteralData.BINARY,
+                "message.txt",
+                new Date(),
+                new byte[4096]
+        );
 
-        try (OutputStream compressedOut = compressor.open(literalOut)) {
-            PGPLiteralDataGenerator literalGen = new PGPLiteralDataGenerator();
-            try (OutputStream literalDataOut = literalGen.open(
-                    compressedOut,
-                    PGPLiteralData.BINARY,
-                    "message.txt",
-                    new Date(),
-                    new byte[4096])) {
+        String message = "Hello world — signed and encrypted, but not compressed!";
+        byte[] messageBytes = message.getBytes();
+        litOut.write(messageBytes);
+        litOut.close();
+        literalGen.close();
 
-                byte[] data = "Hello, OpenPGP world!".getBytes();
-                literalDataOut.write(data);
-                sigGen.update(data); // feed to signature
-            }
+        byte[] literalData = literalOut.toByteArray();
 
-            // Write signature packet
-            sigGen.generate().encode(compressedOut);
-        }
+        // STEP 4️⃣ — Compute signature packet
+        sigGen.update(messageBytes); // Feed data into signature
+        PGPSignature signature = sigGen.generate();
 
-        compressor.close();
-        byte[] signedData = literalOut.toByteArray();
+        ByteArrayOutputStream signedOut = new ByteArrayOutputStream();
+        signedOut.write(literalData);
+        signature.encode(signedOut);
 
-        // STEP 4️⃣ — Encrypt the signed data
+        byte[] signedData = signedOut.toByteArray();
+
+        // STEP 5️⃣ — Encrypt
         PGPEncryptedDataGenerator encGen = new PGPEncryptedDataGenerator(encryptorBuilder);
         encGen.addMethod(new BcPublicKeyKeyEncryptionMethodGenerator(recipientKey));
 
