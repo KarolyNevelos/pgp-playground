@@ -62,6 +62,7 @@ public class BcPGPBaselineExample {
         PGPSignature signature = sigGen.generate();
 
         ByteArrayOutputStream signedOut = new ByteArrayOutputStream();
+        sigGen.generateOnePassVersion(false).encode(signedOut);
         signedOut.write(literalData);
         signature.encode(signedOut);
 
