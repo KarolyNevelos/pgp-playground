@@ -15,6 +15,7 @@ public class BcPGPBaselineExample {
         // Normally you would load real keys from a keyring,
         // but for demonstration we’ll just assume you already have them.
         PGPPublicKey recipientKey = loadPublicKey("bob-public.asc");
+        PGPPublicKey issuerPublicKey = loadPublicKey("bob-public.asc");
         PGPPrivateKey signingKey = loadPrivateKey("bob-private.asc", "".toCharArray());
 
         // STEP 1️⃣ — Create Bouncy Castle operator implementations
@@ -34,7 +35,7 @@ public class BcPGPBaselineExample {
 
         // Add metadata (optional)
         PGPSignatureSubpacketGenerator spGen = new PGPSignatureSubpacketGenerator();
-        spGen.setSignerUserID(false, "signer@example.com");
+        spGen.addSignerUserID(false, "signer@example.com");
         sigGen.setHashedSubpackets(spGen.generate());
 
         // STEP 3️⃣ — Sign literal data (no compression)
@@ -57,24 +58,24 @@ public class BcPGPBaselineExample {
 
         byte[] literalData = literalOut.toByteArray();
 
-        // STEP 4️⃣ — Compute signature packet
-        sigGen.update(messageBytes); // Feed data into signature
-        PGPSignature signature = sigGen.generate();
-
-        ByteArrayOutputStream signedOut = new ByteArrayOutputStream();
-        sigGen.generateOnePassVersion(false).encode(signedOut);
-        signedOut.write(literalData);
-        signature.encode(signedOut);
-
-        byte[] signedData = signedOut.toByteArray();
-
         // STEP 5️⃣ — Encrypt
         PGPEncryptedDataGenerator encGen = new PGPEncryptedDataGenerator(encryptorBuilder);
         encGen.addMethod(new BcPublicKeyKeyEncryptionMethodGenerator(recipientKey));
 
         ByteArrayOutputStream encryptedOut = new ByteArrayOutputStream();
-        try (OutputStream encryptedStream = encGen.open(encryptedOut, signedData.length)) {
-            encryptedStream.write(signedData);
+
+
+        try (OutputStream encryptedStream = encGen.open(encryptedOut, new byte[4096])) {
+
+            // --- 1️⃣ Write One-Pass Signature Packet ---
+            PGPOnePassSignature onePass = sigGen.generateOnePassVersion(false);
+            onePass.encode(encryptedStream);
+
+            encryptedStream.write(literalData);
+            sigGen.update(literalData);
+
+            PGPSignature signature = sigGen.generate();
+            signature.encode(encryptedStream);
         }
 
         // STEP 5️⃣ — Save final encrypted file in ASCII-armored format
