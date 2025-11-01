@@ -14,9 +14,8 @@ public class BcPGPBaselineExample {
     public static void main(String[] args) throws Exception {
         // Normally you would load real keys from a keyring,
         // but for demonstration we’ll just assume you already have them.
-        PGPPublicKey recipientKey = loadPublicKey("bob-public.asc");
-        PGPPublicKey issuerPublicKey = loadPublicKey("bob-public.asc");
-        PGPPrivateKey signingKey = loadPrivateKey("bob-private.asc", "".toCharArray());
+        PGPPublicKey recipientKey = KeyHelper.loadPublicKey("bob-public.asc");
+        PGPPrivateKey signingKey = KeyHelper.loadPrivateKey("bob-private.asc");
 
         // STEP 1️⃣ — Create Bouncy Castle operator implementations
         PGPContentSignerBuilder signerBuilder =
@@ -35,7 +34,7 @@ public class BcPGPBaselineExample {
 
         // Add metadata (optional)
         PGPSignatureSubpacketGenerator spGen = new PGPSignatureSubpacketGenerator();
-        spGen.addSignerUserID(false, "signer@example.com");
+        spGen.addSignerUserID(false, "Bob Babbage <bob@openpgp.example>");
         sigGen.setHashedSubpackets(spGen.generate());
 
         // STEP 3️⃣ — Sign literal data (no compression)
@@ -69,6 +68,7 @@ public class BcPGPBaselineExample {
 
             // --- 1️⃣ Write One-Pass Signature Packet ---
             PGPOnePassSignature onePass = sigGen.generateOnePassVersion(false);
+            onePass.init(new BcPGPContentVerifierBuilderProvider(), recipientKey);
             onePass.encode(encryptedStream);
 
             encryptedStream.write(literalData);
@@ -99,46 +99,7 @@ public class BcPGPBaselineExample {
         }
     }
 
-    // ----------------------------------------------------
-    // Helper: Load PGP keys from ASCII-armored files
-    // ----------------------------------------------------
-    private static PGPPublicKey loadPublicKey(String filePath) throws Exception {
-        try (InputStream keyIn = new BufferedInputStream(new FileInputStream("src\\main\\resources\\org\\example\\" + filePath))) {
-            PGPPublicKeyRingCollection keyRings =
-                    new PGPPublicKeyRingCollection(
-                            PGPUtil.getDecoderStream(keyIn),
-                            new BcKeyFingerprintCalculator());
 
-            for (PGPPublicKeyRing ring : keyRings) {
-                for (PGPPublicKey key : ring) {
-                    if (key.isEncryptionKey()) {
-                        return key;
-                    }
-                }
-            }
-        }
-        throw new IllegalArgumentException("No encryption key found in " + filePath);
-    }
-
-    private static PGPPrivateKey loadPrivateKey(String filePath, char[] password) throws Exception {
-        try (InputStream keyIn = new BufferedInputStream(new FileInputStream("src\\main\\resources\\org\\example\\" + filePath))) {
-            PGPSecretKeyRingCollection keyRings =
-                    new PGPSecretKeyRingCollection(
-                            PGPUtil.getDecoderStream(keyIn),
-                            new BcKeyFingerprintCalculator());
-
-            for (PGPSecretKeyRing ring : keyRings) {
-                for (PGPSecretKey key : ring) {
-                    if (key.isSigningKey()) {
-                        return key.extractPrivateKey(
-                                new BcPBESecretKeyDecryptorBuilder(
-                                        new BcPGPDigestCalculatorProvider()).build(password));
-                    }
-                }
-            }
-        }
-        throw new IllegalArgumentException("No signing key found in " + filePath);
-    }
 
     private static String toHex(byte[] data) {
         StringBuilder sb = new StringBuilder();
