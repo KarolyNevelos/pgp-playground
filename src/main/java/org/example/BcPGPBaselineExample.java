@@ -33,13 +33,16 @@ public class BcPGPBaselineExample {
         sigGen.init(PGPSignature.BINARY_DOCUMENT, signingKey);
 
         // Add metadata (optional)
-        PGPSignatureSubpacketGenerator spGen = new PGPSignatureSubpacketGenerator();
-        spGen.addSignerUserID(false, "Bob Babbage <bob@openpgp.example>");
-        sigGen.setHashedSubpackets(spGen.generate());
+//        PGPSignatureSubpacketGenerator spGen = new PGPSignatureSubpacketGenerator();
+//        spGen.addSignerUserID(false, "Bob Babbage <bob@openpgp.example>");
+//        sigGen.setHashedSubpackets(spGen.generate());
 
         // STEP 3️⃣ — Sign literal data (no compression)
         ByteArrayOutputStream literalOut = new ByteArrayOutputStream();
         PGPLiteralDataGenerator literalGen = new PGPLiteralDataGenerator();
+
+        String message = "Hello world — signed and encrypted, but not compressed!";
+        byte[] messageBytes = message.getBytes();
 
         OutputStream litOut = literalGen.open(
                 literalOut,
@@ -49,8 +52,6 @@ public class BcPGPBaselineExample {
                 new byte[4096]
         );
 
-        String message = "Hello world — signed and encrypted, but not compressed!";
-        byte[] messageBytes = message.getBytes();
         litOut.write(messageBytes);
         litOut.close();
         literalGen.close();
@@ -67,12 +68,10 @@ public class BcPGPBaselineExample {
         try (OutputStream encryptedStream = encGen.open(encryptedOut, new byte[4096])) {
 
             // --- 1️⃣ Write One-Pass Signature Packet ---
-            PGPOnePassSignature onePass = sigGen.generateOnePassVersion(false);
-            onePass.init(new BcPGPContentVerifierBuilderProvider(), recipientKey);
-            onePass.encode(encryptedStream);
+            sigGen.generateOnePassVersion(false).encode(encryptedStream);
 
             encryptedStream.write(literalData);
-            sigGen.update(literalData);
+            sigGen.update(messageBytes);
 
             PGPSignature signature = sigGen.generate();
             signature.encode(encryptedStream);
