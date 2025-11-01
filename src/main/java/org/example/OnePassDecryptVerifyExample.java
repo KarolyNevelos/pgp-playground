@@ -55,6 +55,7 @@ public class OnePassDecryptVerifyExample {
         // Decrypt data stream
         InputStream clear = encData.getDataStream(
                 new BcPublicKeyDataDecryptorFactory(recipientKey)
+                //new CustomPrivateKeyDecryptor("src\\main\\resources\\org\\example\\bob-private.pem").buildDecryptorFactory()
         );
 
         PGPObjectFactory plainFact = new PGPObjectFactory(clear, new BcKeyFingerprintCalculator());

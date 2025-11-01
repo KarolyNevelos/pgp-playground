@@ -1,6 +1,7 @@
 package org.example;
 
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.bcpg.MPInteger;
 import org.bouncycastle.openpgp.operator.PublicKeyDataDecryptorFactory;
 import org.bouncycastle.openpgp.operator.bc.BcPublicKeyDataDecryptorFactory;
 import org.bouncycastle.openssl.PEMParser;
@@ -58,7 +59,10 @@ public class CustomPrivateKeyDecryptor {
                 if (privateKey instanceof RSAPrivateKey rsaKey) {
                     // ⚠️ Replace this with your own custom decryption (RSA, ECC, hybrid, etc.)
                     // This is where you’d integrate your custom crypto engine.
-                    return yourCustomDecrypt(secKeyData[0], rsaKey);
+                    byte[] mpiData = secKeyData[0];
+                    byte[] dest = new byte[mpiData.length - 2];
+                    System.arraycopy(mpiData, 2, dest, 0, mpiData.length - 2);
+                    return yourCustomDecrypt(dest, rsaKey);
                 } else {
                     throw new IllegalStateException("Unsupported private key type: " + privateKey.getAlgorithm());
                 }
