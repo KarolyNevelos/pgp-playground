@@ -1,7 +1,7 @@
 package org.example;
 
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
-import org.bouncycastle.bcpg.MPInteger;
+import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.operator.PublicKeyDataDecryptorFactory;
 import org.bouncycastle.openpgp.operator.bc.BcPublicKeyDataDecryptorFactory;
 import org.bouncycastle.openssl.PEMParser;
@@ -53,7 +53,7 @@ public class CustomPrivateKeyDecryptor {
 
         @Override
         public byte[] recoverSessionData(int keyAlgorithm, byte[][] secKeyData)
-                throws org.bouncycastle.openpgp.PGPException {
+                throws PGPException {
             try {
                 // Example: if RSA
                 if (privateKey instanceof RSAPrivateKey rsaKey) {
@@ -67,7 +67,7 @@ public class CustomPrivateKeyDecryptor {
                     throw new IllegalStateException("Unsupported private key type: " + privateKey.getAlgorithm());
                 }
             } catch (Exception e) {
-                throw new org.bouncycastle.openpgp.PGPException("Custom session key decryption failed", e);
+                throw new PGPException("Custom session key decryption failed", e);
             }
         }
 

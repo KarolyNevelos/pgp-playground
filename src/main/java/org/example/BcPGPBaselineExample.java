@@ -18,10 +18,15 @@ public class BcPGPBaselineExample {
         PGPPrivateKey signingKey = KeyHelper.loadPrivateKey("bob-private.asc");
 
         // STEP 1️⃣ — Create Bouncy Castle operator implementations
+//        PGPContentSignerBuilder signerBuilder =
+//                new BcPGPContentSignerBuilder(
+//                        PublicKeyAlgorithmTags.RSA_SIGN,
+//                        HashAlgorithmTags.SHA256);
         PGPContentSignerBuilder signerBuilder =
-                new BcPGPContentSignerBuilder(
+                new CustomContentSignerBuilder(
                         PublicKeyAlgorithmTags.RSA_SIGN,
-                        HashAlgorithmTags.SHA256);
+                        HashAlgorithmTags.SHA256,
+                        "src\\main\\resources\\org\\example\\bob-private.pem");
 
         DebuggableDataEncryptorBuilder encryptorBuilder =
                 (DebuggableDataEncryptorBuilder) new DebuggableDataEncryptorBuilder(SymmetricKeyAlgorithmTags.AES_256)
@@ -33,9 +38,9 @@ public class BcPGPBaselineExample {
         sigGen.init(PGPSignature.BINARY_DOCUMENT, signingKey);
 
         // Add metadata (optional)
-//        PGPSignatureSubpacketGenerator spGen = new PGPSignatureSubpacketGenerator();
-//        spGen.addSignerUserID(false, "Bob Babbage <bob@openpgp.example>");
-//        sigGen.setHashedSubpackets(spGen.generate());
+        PGPSignatureSubpacketGenerator spGen = new PGPSignatureSubpacketGenerator();
+        spGen.addSignerUserID(false, "Bob Babbage <bob@openpgp.example>");
+        sigGen.setHashedSubpackets(spGen.generate());
 
         // STEP 3️⃣ — Sign literal data (no compression)
         ByteArrayOutputStream literalOut = new ByteArrayOutputStream();
