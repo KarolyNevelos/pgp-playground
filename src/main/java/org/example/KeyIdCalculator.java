@@ -1,6 +1,5 @@
 package org.example;
 
-import org.bouncycastle.bcpg.BCPGOutputStream;
 import org.bouncycastle.bcpg.PublicKeyAlgorithmTags;
 import org.bouncycastle.bcpg.PublicKeyPacket;
 import org.bouncycastle.bcpg.RSAPublicBCPGKey;
@@ -8,10 +7,10 @@ import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.PrivateKey;
+import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Date;
 
@@ -20,7 +19,7 @@ public class KeyIdCalculator {
 
     static long getKeyId(PrivateKey privateKey, Date creationDate) throws IOException, PGPException {
         BigInteger n = ((RSAPrivateKey)privateKey).getModulus(); // modulus
-        BigInteger e = new BigInteger("65537"); // get public exponent from private key
+        BigInteger e = ((RSAPrivateCrtKey) privateKey).getPublicExponent();
 
         // Create RSA public key structure
         RSAPublicBCPGKey rsaKey = new RSAPublicBCPGKey(n, e);

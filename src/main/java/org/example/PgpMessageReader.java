@@ -1,32 +1,35 @@
 package org.example;
 
 import org.bouncycastle.openpgp.*;
-import org.bouncycastle.openpgp.operator.bc.*;
-import org.bouncycastle.bcpg.*;
-import org.bouncycastle.util.io.Streams;
+import org.bouncycastle.openpgp.operator.PublicKeyDataDecryptorFactory;
+import org.bouncycastle.openpgp.operator.bc.BcKeyFingerprintCalculator;
+import org.bouncycastle.openpgp.operator.bc.BcPGPContentVerifierBuilderProvider;
+import org.bouncycastle.openpgp.operator.bc.BcPublicKeyDataDecryptorFactory;
 
-import java.io.*;
-import java.security.Security;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Iterator;
 
-public class OnePassDecryptVerifyExample {
+public class PgpMessageReader {
 
-    public static void main(String[] args) throws Exception {
-        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+    private final PublicKeyDataDecryptorFactory dataDecryptorFactory;
+    private final PGPPublicKey signingKey;
 
-        // --- Load recipient secret key (for decryption) ---
-        PGPPrivateKey privateKey = KeyHelper.loadPrivateKey("bob-private.asc");
-
-        // --- Load signer public key (for verification) ---
-        PGPPublicKey signingKey = KeyHelper.loadPublicKey("bob-public.asc");
-
-        // --- Input file (the one generated earlier) ---
-        try (InputStream in = new BufferedInputStream(new FileInputStream("baseline-message.asc"))) {
-            decryptAndVerify(in, privateKey, signingKey);
-        }
+    public static PgpMessageReader createStandard(PGPPrivateKey decryptorKey, PGPPublicKey senderPublicKey){
+        return new PgpMessageReader(new BcPublicKeyDataDecryptorFactory(decryptorKey), senderPublicKey);
     }
 
-    private static void decryptAndVerify(InputStream in, PGPPrivateKey recipientKey, PGPPublicKey signingKey)
+    public static PgpMessageReader createCustom(String pemFilePath, PGPPublicKey senderPublicKey) throws IOException {
+        return new PgpMessageReader(new CustomPrivateKeyDecryptor(pemFilePath).buildDecryptorFactory(), senderPublicKey);
+    }
+
+    public PgpMessageReader(PublicKeyDataDecryptorFactory dataDecryptorFactory, PGPPublicKey signingKey){
+        this.dataDecryptorFactory = dataDecryptorFactory;
+        this.signingKey = signingKey;
+    }
+
+    public MessageResult decryptAndVerify(InputStream in)
             throws Exception {
 
         // Decode ASCII armor
@@ -53,10 +56,7 @@ public class OnePassDecryptVerifyExample {
         if (encData == null) throw new IllegalStateException("No encrypted data found.");
 
         // Decrypt data stream
-        InputStream clear = encData.getDataStream(
-                new BcPublicKeyDataDecryptorFactory(recipientKey)
-                //new CustomPrivateKeyDecryptor("src\\main\\resources\\org\\example\\bob-private.pem").buildDecryptorFactory()
-        );
+        InputStream clear = encData.getDataStream(dataDecryptorFactory);
 
         PGPObjectFactory plainFact = new PGPObjectFactory(clear, new BcKeyFingerprintCalculator());
 
@@ -96,19 +96,43 @@ public class OnePassDecryptVerifyExample {
             }
 
             String plaintext = out.toString("UTF-8");
-            System.out.println("📩 Decrypted message:\n" + plaintext);
 
             // Verify trailing signature
             PGPSignature signature = signatureList.get(0);
             boolean verified = onePass.verify(signature);
 
-            System.out.println("🔏 Signature valid: " + verified);
+            // Integrity check
+            if (!encData.isIntegrityProtected()) {
+                throw new IllegalStateException("Encrypted data is not integrity protected");
+            }
+
+            return new MessageResult(plaintext, verified, encData.verify());
         }
 
-        // Integrity check
-        if (encData.isIntegrityProtected()) {
-            System.out.println("🔐 Integrity check: " + encData.verify());
-        }
     }
 
+    static class MessageResult {
+
+        private String message;
+        private boolean verified;
+        private boolean integrityChecked;
+
+        public MessageResult(String message, boolean verified, boolean integrityChecked) {
+            this.message = message;
+            this.verified = verified;
+            this.integrityChecked = integrityChecked;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public boolean isVerified() {
+            return verified;
+        }
+
+        public boolean isIntegrityChecked() {
+            return integrityChecked;
+        }
+    }
 }

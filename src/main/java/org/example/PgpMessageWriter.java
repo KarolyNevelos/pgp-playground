@@ -1,52 +1,73 @@
 package org.example;
 
-import org.bouncycastle.bcpg.*;
+import org.bouncycastle.bcpg.ArmoredOutputStream;
+import org.bouncycastle.bcpg.HashAlgorithmTags;
+import org.bouncycastle.bcpg.PublicKeyAlgorithmTags;
+import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags;
 import org.bouncycastle.openpgp.*;
-import org.bouncycastle.openpgp.operator.bc.*;
-import org.bouncycastle.openpgp.operator.*;
+import org.bouncycastle.openpgp.operator.PGPContentSignerBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPublicKeyKeyEncryptionMethodGenerator;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Date;
 
-public class BcPGPBaselineExample {
+public class PgpMessageWriter {
 
-    public static void main(String[] args) throws Exception {
-        // Normally you would load real keys from a keyring,
-        // but for demonstration we’ll just assume you already have them.
-        PGPPublicKey recipientKey = KeyHelper.loadPublicKey("bob-public.asc");
-        PGPPrivateKey signingKey = KeyHelper.loadPrivateKey("bob-private.asc");
+    private final PGPSignatureGenerator sigGen;
+    private final PGPPublicKey recipientKey;
 
-        // STEP 1️⃣ — Create Bouncy Castle operator implementations
-//        PGPContentSignerBuilder signerBuilder =
-//                new BcPGPContentSignerBuilder(
-//                        PublicKeyAlgorithmTags.RSA_SIGN,
-//                        HashAlgorithmTags.SHA256);
+    public static PgpMessageWriter createStandard(PGPPrivateKey signingKey, PGPPublicKey recipientKeyParam) throws PGPException {
+        PGPContentSignerBuilder signerBuilder =
+                new BcPGPContentSignerBuilder(
+                        PublicKeyAlgorithmTags.RSA_SIGN,
+                        HashAlgorithmTags.SHA256);
+
+        PGPSignatureGenerator sigGen = new PGPSignatureGenerator(signerBuilder);
+        sigGen.init(PGPSignature.BINARY_DOCUMENT, signingKey);
+        return new PgpMessageWriter(sigGen, recipientKeyParam);
+    }
+
+    public static PgpMessageWriter createCustom(String pemFilePath, PGPPublicKey recipientKeyParam) throws Exception {
         PGPContentSignerBuilder signerBuilder =
                 new CustomContentSignerBuilder(
                         PublicKeyAlgorithmTags.RSA_SIGN,
                         HashAlgorithmTags.SHA256,
-                        "src\\main\\resources\\org\\example\\bob-private.pem");
+                        pemFilePath);
 
+        PGPSignatureGenerator sigGen = new PGPSignatureGenerator(signerBuilder);
+        sigGen.init(PGPSignature.BINARY_DOCUMENT, null);
+
+        return new PgpMessageWriter(sigGen, recipientKeyParam);
+    }
+
+    public PgpMessageWriter(PGPSignatureGenerator sigGen, PGPPublicKey recipientKey){
+        this.sigGen = sigGen;
+        this.recipientKey = recipientKey;
+    }
+
+    public String encryptAndSignMessage(String message) throws Exception {
+        // STEP 1️⃣ — Create Bouncy Castle operator implementations
         DebuggableDataEncryptorBuilder encryptorBuilder =
                 (DebuggableDataEncryptorBuilder) new DebuggableDataEncryptorBuilder(SymmetricKeyAlgorithmTags.AES_256)
                         .setWithIntegrityPacket(true)
                         .setSecureRandom(new SecureRandom());
 
         // STEP 2️⃣ — Initialize signature generator
-        PGPSignatureGenerator sigGen = new PGPSignatureGenerator(signerBuilder);
-        sigGen.init(PGPSignature.BINARY_DOCUMENT, signingKey);
 
         // Add metadata (optional)
         PGPSignatureSubpacketGenerator spGen = new PGPSignatureSubpacketGenerator();
-        spGen.addSignerUserID(false, "Bob Babbage <bob@openpgp.example>");
+        //spGen.addSignerUserID(false, "Bob Babbage <bob@openpgp.example>");
         sigGen.setHashedSubpackets(spGen.generate());
 
         // STEP 3️⃣ — Sign literal data (no compression)
         ByteArrayOutputStream literalOut = new ByteArrayOutputStream();
         PGPLiteralDataGenerator literalGen = new PGPLiteralDataGenerator();
 
-        String message = "Hello world — signed and encrypted, but not compressed!";
         byte[] messageBytes = message.getBytes();
 
         OutputStream litOut = literalGen.open(
@@ -86,9 +107,9 @@ public class BcPGPBaselineExample {
         byte[] sessionKey = encryptorBuilder.getLastSessionKey();
         String sessionKeyHex = toHex(sessionKey);
 
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
         try (ByteArrayInputStream pgpBinary = new ByteArrayInputStream(encryptedOut.toByteArray());
-             FileOutputStream fileOut = new FileOutputStream("baseline-message.asc");
-             ArmoredOutputStream armorOut = new ArmoredOutputStream(fileOut)) {
+             ArmoredOutputStream armorOut = new ArmoredOutputStream(out)) {
 
             armorOut.setHeader("Comment", "SessionKey (hex): " + sessionKeyHex);
 
@@ -98,12 +119,11 @@ public class BcPGPBaselineExample {
                 armorOut.write(buffer, 0, len);
             }
 
-            System.out.println("✅ Baseline OpenPGP (sign+encrypt) complete: baseline-message.asc");
-            System.out.println("🔑 Session key: " + sessionKeyHex);
         }
+        //System.out.println("🔑 Session key: " + sessionKeyHex);
+        return out.toString(StandardCharsets.UTF_8);
+
     }
-
-
 
     private static String toHex(byte[] data) {
         StringBuilder sb = new StringBuilder();

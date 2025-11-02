@@ -14,7 +14,7 @@ class KeyHelper {
     private KeyHelper(){}
 
     static PGPPrivateKey loadPrivateKey(String filePath) throws Exception {
-        try (InputStream keyIn = new BufferedInputStream(new FileInputStream("src\\main\\resources\\org\\example\\" + filePath))) {
+        try (InputStream keyIn = new BufferedInputStream(new FileInputStream("src\\test\\resources\\org\\example\\" + filePath))) {
             PGPSecretKeyRingCollection keyRings =
                     new PGPSecretKeyRingCollection(
                             PGPUtil.getDecoderStream(keyIn),
@@ -34,7 +34,7 @@ class KeyHelper {
     }
 
     static PGPPublicKey loadPublicKey(String filePath) throws Exception {
-        try (InputStream keyIn = new BufferedInputStream(new FileInputStream("src\\main\\resources\\org\\example\\" + filePath))) {
+        try (InputStream keyIn = new BufferedInputStream(new FileInputStream("src\\test\\resources\\org\\example\\" + filePath))) {
             PGPPublicKeyRingCollection keyRings =
                     new PGPPublicKeyRingCollection(
                             PGPUtil.getDecoderStream(keyIn),
