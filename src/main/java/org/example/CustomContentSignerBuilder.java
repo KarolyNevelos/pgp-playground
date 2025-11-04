@@ -45,6 +45,12 @@ public class CustomContentSignerBuilder implements PGPContentSignerBuilder {
         }
     }
 
+    public CustomContentSignerBuilder(int keyAlgorithm, int hashAlgorithm, PrivateKey privateKey) {
+        this.keyAlgorithm = keyAlgorithm;
+        this.hashAlgorithm = hashAlgorithm;
+        this.privateKey = privateKey;
+    }
+
     @Override
     public PGPContentSigner build(int signatureType, PGPPrivateKey pgpPrivateKey) throws PGPException {
 

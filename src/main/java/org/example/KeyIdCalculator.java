@@ -27,7 +27,7 @@ public class KeyIdCalculator {
         // Create a V4 PublicKeyPacket
         PublicKeyPacket pubKeyPacket = new PublicKeyPacket(
                 4,                             // Version 4
-                PublicKeyAlgorithmTags.RSA_GENERAL,
+                PublicKeyAlgorithmTags.RSA_SIGN,
                 creationDate,                    // Creation time
                 rsaKey
         );

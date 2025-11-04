@@ -3,7 +3,10 @@ package org.example;
 import org.bouncycastle.bcpg.*;
 import org.bouncycastle.openpgp.*;
 import org.bouncycastle.openpgp.operator.PGPDigestCalculator;
-import org.bouncycastle.openpgp.operator.jcajce.*;
+import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator;
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder;
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder;
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.openssl.jcajce.JcaPKCS8Generator;
 import org.bouncycastle.util.io.pem.PemObject;
@@ -11,11 +14,13 @@ import org.bouncycastle.util.io.pem.PemReader;
 
 import java.io.*;
 import java.math.BigInteger;
-import java.security.*;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPublicKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Date;
 
 /**
@@ -46,21 +51,11 @@ public class PGPKeyConversionUtils {
      * to an ASCII-armored OpenPGP private key block.
      */
     public static String pemPrivateToPgp(String pemPrivateKey, Date date, String identity) throws Exception {
-        PemObject pem = readPemObject(pemPrivateKey);
-        PrivateKey privateKey = KeyFactory.getInstance("RSA")
-                .generatePrivate(new PKCS8EncodedKeySpec(pem.getContent()));
-
-        // Derive PublicKey
-        PublicKey publicKey = KeyFactory.getInstance("RSA")
-                .generatePublic(new java.security.spec.RSAPublicKeySpec(
-                        ((java.security.interfaces.RSAPrivateCrtKey) privateKey).getModulus(),
-                        ((java.security.interfaces.RSAPrivateCrtKey) privateKey).getPublicExponent()
-                ));
 
         // Wrap into PGP keys
         PGPKeyPair pgpKeyPair = new JcaPGPKeyPair(
                 PGPPublicKey.RSA_GENERAL,
-                new KeyPair(publicKey, privateKey),
+                pemFileToKeyPair(pemPrivateKey),
                 date
         );
 
@@ -92,6 +87,20 @@ public class PGPKeyConversionUtils {
         return baos.toString();
     }
 
+    public static KeyPair pemFileToKeyPair(String pemPrivateKey) throws Exception {
+        PemObject pem = readPemObject(pemPrivateKey);
+        PrivateKey privateKey = KeyFactory.getInstance("RSA")
+                .generatePrivate(new PKCS8EncodedKeySpec(pem.getContent()));
+
+        // Derive PublicKey
+        PublicKey publicKey = KeyFactory.getInstance("RSA")
+                .generatePublic(new java.security.spec.RSAPublicKeySpec(
+                        ((java.security.interfaces.RSAPrivateCrtKey) privateKey).getModulus(),
+                        ((java.security.interfaces.RSAPrivateCrtKey) privateKey).getPublicExponent()
+                ));
+        return new KeyPair(publicKey, privateKey);
+    }
+
     /**
      * Converts an ASCII-armored OpenPGP public key block
      * ("-----BEGIN PGP PUBLIC KEY BLOCK-----") to a PEM-encoded
@@ -114,21 +123,10 @@ public class PGPKeyConversionUtils {
      * to an ASCII-armored OpenPGP public key block.
      */
     public static String pemPublicToPgp(String pemPrivateKey, Date date, String identity) throws Exception {
-        PemObject pem = readPemObject(pemPrivateKey);
-        PrivateKey privateKey = KeyFactory.getInstance("RSA")
-                .generatePrivate(new PKCS8EncodedKeySpec(pem.getContent()));
-
-        // Derive PublicKey
-        PublicKey publicKey = KeyFactory.getInstance("RSA")
-                .generatePublic(new java.security.spec.RSAPublicKeySpec(
-                        ((java.security.interfaces.RSAPrivateCrtKey) privateKey).getModulus(),
-                        ((java.security.interfaces.RSAPrivateCrtKey) privateKey).getPublicExponent()
-                ));
-
         // Wrap into PGP keys
         PGPKeyPair pgpKeyPair = new JcaPGPKeyPair(
                 PGPPublicKey.RSA_GENERAL,
-                new KeyPair(publicKey, privateKey),
+                pemFileToKeyPair(pemPrivateKey),
                 date
         );
 

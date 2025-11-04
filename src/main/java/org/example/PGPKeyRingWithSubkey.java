@@ -7,13 +7,13 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.*;
 import org.bouncycastle.openpgp.operator.PGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.PGPDigestCalculator;
-import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair;
 
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.Security;
 import java.time.Instant;
 import java.util.Date;
@@ -50,10 +50,11 @@ public class PGPKeyRingWithSubkey {
 
         // === Define content signer (for self-certification) ===
         PGPContentSignerBuilder contentSignerBuilder =
-                new JcaPGPContentSignerBuilder(
-                        pgpSignKeyPair.getPublicKey().getAlgorithm(),
-                        HashAlgorithmTags.SHA512)
-                        .setProvider("BC");
+                new CustomContentSignerBuilder(
+                        PublicKeyAlgorithmTags.RSA_SIGN,
+                        HashAlgorithmTags.SHA256,
+                        signingKeyPair.getPrivate());
+
 
         // === Define hashed subpackets (capabilities, algorithms, etc.) ===
         PGPSignatureSubpacketGenerator hashedSubPackets = new PGPSignatureSubpacketGenerator();
@@ -124,15 +125,18 @@ public class PGPKeyRingWithSubkey {
 
     // === Example usage ===
     public static void main(String[] args) throws Exception {
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
-        kpg.initialize(4096);
-        KeyPair signingKeyPair = kpg.generateKeyPair();
-        KeyPair encryptionKeyPair = kpg.generateKeyPair();
+//        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+//        kpg.initialize(4096);
 
-        String userId = "Alice Example <alice@example.com>";
+        //KeyPair signingKeyPair = kpg.generateKeyPair();
+        KeyPair signingKeyPair = PGPKeyConversionUtils.pemFileToKeyPair(Files.readString(Path.of("src/test/resources/org/example/bob-private.pem")));
+        KeyPair actualKeyPair = new KeyPair(signingKeyPair.getPublic(), null);
+//        KeyPair encryptionKeyPair = kpg.generateKeyPair();
+
+        String userId = "Bob Babbage <bob@openpgp.example>";
         Date creationDate = Date.from(Instant.parse("2019-10-15T10:18:26Z"));
 
-        //generatePGPKeyRing(signingKeyPair, null, userId, creationDate);
-        generatePGPKeyRing(signingKeyPair, encryptionKeyPair, userId, creationDate);
+        generatePGPKeyRing(signingKeyPair, null, userId, creationDate);
+        //generatePGPKeyRing(signingKeyPair, encryptionKeyPair, userId, creationDate);
     }
 }
