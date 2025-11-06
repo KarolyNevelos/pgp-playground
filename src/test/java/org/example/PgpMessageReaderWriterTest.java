@@ -60,7 +60,7 @@ public class PgpMessageReaderWriterTest {
     @Test
     void customWriteBobStandardReadCooper() throws Exception {
         // Given
-        PgpMessageWriter pgpMessageWriter = PgpMessageWriter.createCustom("src\\test\\resources\\org\\example\\bob-private.pem", cooperPublicKey);
+        PgpMessageWriter pgpMessageWriter = PgpMessageWriter.createCustom("src\\test\\resources\\org\\example\\bob-private-sign.pem", cooperPublicKey);
         PgpMessageReader pgpMessageReader = PgpMessageReader.createStandard(cooperPrivateKey, bobPublicKey);
         String encrypted = pgpMessageWriter.encryptAndSignMessage(MESSAGE_TEXT);
         System.out.println(encrypted);
@@ -79,7 +79,7 @@ public class PgpMessageReaderWriterTest {
     void standardWriteCooperCustomerReadBob() throws Exception {
         // Given
         PgpMessageWriter pgpMessageWriter = PgpMessageWriter.createStandard(cooperPrivateKey, bobPublicKey);
-        PgpMessageReader pgpMessageReader = PgpMessageReader.createCustom("src\\test\\resources\\org\\example\\bob-private.pem", cooperPublicKey);
+        PgpMessageReader pgpMessageReader = PgpMessageReader.createCustom("src\\test\\resources\\org\\example\\bob-private-sign.pem", cooperPublicKey);
         String encrypted = pgpMessageWriter.encryptAndSignMessage(MESSAGE_TEXT);
         System.out.println(encrypted);
 
@@ -96,8 +96,8 @@ public class PgpMessageReaderWriterTest {
     @Test
     void customWriteBobCustomReadBob() throws Exception {
         // Given
-        PgpMessageWriter pgpMessageWriter = PgpMessageWriter.createCustom("src\\test\\resources\\org\\example\\bob-private.pem", bobPublicKey);
-        PgpMessageReader pgpMessageReader = PgpMessageReader.createCustom("src\\test\\resources\\org\\example\\bob-private.pem", bobPublicKey);
+        PgpMessageWriter pgpMessageWriter = PgpMessageWriter.createCustom("src\\test\\resources\\org\\example\\bob-private-sign.pem", bobPublicKey);
+        PgpMessageReader pgpMessageReader = PgpMessageReader.createCustom("src\\test\\resources\\org\\example\\bob-private-sign.pem", bobPublicKey);
         String encrypted = pgpMessageWriter.encryptAndSignMessage(MESSAGE_TEXT);
         System.out.println(encrypted);
 

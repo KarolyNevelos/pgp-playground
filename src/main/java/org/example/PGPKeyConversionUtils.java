@@ -9,6 +9,7 @@ import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBu
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.openssl.jcajce.JcaPKCS8Generator;
+import org.bouncycastle.util.encoders.Hex;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 
@@ -22,6 +23,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Date;
+import java.util.Iterator;
 
 /**
  * Utility class for converting RSA key formats between
@@ -34,16 +36,27 @@ public class PGPKeyConversionUtils {
      * ("-----BEGIN PGP PRIVATE KEY BLOCK-----") to a PEM-encoded
      * private key ("-----BEGIN PRIVATE KEY-----").
      */
-    public static String pgpPrivateToPem(String pgpPrivateKey) throws Exception {
-        PGPSecretKeyRing secretKeyRing = readSecretKeyRing(pgpPrivateKey);
-        PGPPrivateKey pgpPrivateKeyObj = extractPrivateKey(secretKeyRing);
-        PrivateKey privateKey = convertToJavaPrivateKey(pgpPrivateKeyObj);
+    public static String pgpPrivateToPem(String pgpPrivateKeyBlock, int position) throws Exception {
+        PGPSecretKeyRing secretKeyRing = readSecretKeyRing(pgpPrivateKeyBlock);
+        Iterator<PGPSecretKey> it = secretKeyRing.getSecretKeys();
+        int index = 0;
+        while (it.hasNext()) {
+            PGPSecretKey pgpSecretKey = it.next();
+            if (position == index) {
+                System.out.println("Key with fingerprint: " + Hex.toHexString(pgpSecretKey.getFingerprint()) + " features: " + Integer.toHexString(pgpSecretKey.getPublicKey().getSignatures().next().getHashedSubPackets().getKeyFlags()));
+                PGPPrivateKey pgpPrivateKey = pgpSecretKey.extractPrivateKey(null);
+                PrivateKey privateKey = convertToJavaPrivateKey(pgpPrivateKey);
 
-        StringWriter out = new StringWriter();
-        try (JcaPEMWriter pemWriter = new JcaPEMWriter(out)) {
-            pemWriter.writeObject(new JcaPKCS8Generator(privateKey, null));
+                StringWriter out = new StringWriter();
+                try (JcaPEMWriter pemWriter = new JcaPEMWriter(out)) {
+                    pemWriter.writeObject(new JcaPKCS8Generator(privateKey, null));
+                }
+                return out.toString();
+            } else {
+                index++;
+            }
         }
-        return out.toString();
+        throw new IllegalArgumentException("Private key not found with position " + position);
     }
 
     /**
@@ -106,16 +119,27 @@ public class PGPKeyConversionUtils {
      * ("-----BEGIN PGP PUBLIC KEY BLOCK-----") to a PEM-encoded
      * public key ("-----BEGIN PUBLIC KEY-----").
      */
-    public static String pgpPublicToPem(String pgpPublicKey) throws Exception {
+    public static String pgpPublicToPem(String pgpPublicKey, int position) throws Exception {
         PGPPublicKeyRing publicKeyRing = readPublicKeyRing(pgpPublicKey);
-        PGPPublicKey pgpPublicKeyObj = publicKeyRing.getPublicKey();
-        PublicKey publicKey = convertToJavaPublicKey(pgpPublicKeyObj);
+        Iterator<PGPPublicKey> it = publicKeyRing.getPublicKeys();
 
-        StringWriter out = new StringWriter();
-        try (JcaPEMWriter pemWriter = new JcaPEMWriter(out)) {
-            pemWriter.writeObject(publicKey);
+        int index = 0;
+        while (it.hasNext()) {
+            PGPPublicKey pgpPublicKeyObj = it.next();
+            if (position == index) {
+                System.out.println("Key with fingerprint: " + Hex.toHexString(pgpPublicKeyObj.getFingerprint()) + " features: " + Integer.toHexString(pgpPublicKeyObj.getSignatures().next().getHashedSubPackets().getKeyFlags()));
+                PublicKey publicKey = convertToJavaPublicKey(pgpPublicKeyObj);
+
+                StringWriter out = new StringWriter();
+                try (JcaPEMWriter pemWriter = new JcaPEMWriter(out)) {
+                    pemWriter.writeObject(publicKey);
+                }
+                return out.toString();
+            } else {
+                index++;
+            }
         }
-        return out.toString();
+        throw new IllegalArgumentException("Private key not found with position " + position);
     }
 
     /**
