@@ -16,11 +16,11 @@ public class PgpMessageReader {
     private final PublicKeyDataDecryptorFactory dataDecryptorFactory;
     private final PGPPublicKey signingKey;
 
-    public static PgpMessageReader createStandard(PGPPrivateKey decryptorKey, PGPPublicKey senderPublicKey){
+    public static PgpMessageReader createStandard(PGPPublicKey senderPublicKey, PGPPrivateKey decryptorKey){
         return new PgpMessageReader(new BcPublicKeyDataDecryptorFactory(decryptorKey), senderPublicKey);
     }
 
-    public static PgpMessageReader createCustom(String pemFilePath, PGPPublicKey senderPublicKey) throws IOException {
+    public static PgpMessageReader createCustom(PGPPublicKey senderPublicKey, String pemFilePath) throws IOException {
         return new PgpMessageReader(new CustomPrivateKeyDecryptor(pemFilePath).buildDecryptorFactory(), senderPublicKey);
     }
 

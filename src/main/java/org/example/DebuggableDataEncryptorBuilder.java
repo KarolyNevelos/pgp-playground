@@ -1,9 +1,8 @@
 package org.example;
 
 import org.bouncycastle.openpgp.PGPException;
-import org.bouncycastle.openpgp.operator.bc.BcPGPDataEncryptorBuilder;
 import org.bouncycastle.openpgp.operator.PGPDataEncryptor;
-import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.openpgp.operator.bc.BcPGPDataEncryptorBuilder;
 
 public class DebuggableDataEncryptorBuilder extends BcPGPDataEncryptorBuilder {
 

@@ -21,7 +21,7 @@ public class PgpMessageWriter {
     private final PGPSignatureGenerator sigGen;
     private final PGPPublicKey recipientKey;
 
-    public static PgpMessageWriter createStandard(PGPPrivateKey signingKey, PGPPublicKey recipientKeyParam) throws PGPException {
+    public static PgpMessageWriter createStandard(PGPPrivateKey signingKey, PGPPublicKey encryptionKey) throws PGPException {
         PGPContentSignerBuilder signerBuilder =
                 new BcPGPContentSignerBuilder(
                         PublicKeyAlgorithmTags.RSA_SIGN,
@@ -29,20 +29,20 @@ public class PgpMessageWriter {
 
         PGPSignatureGenerator sigGen = new PGPSignatureGenerator(signerBuilder);
         sigGen.init(PGPSignature.BINARY_DOCUMENT, signingKey);
-        return new PgpMessageWriter(sigGen, recipientKeyParam);
+        return new PgpMessageWriter(sigGen, encryptionKey);
     }
 
-    public static PgpMessageWriter createCustom(String pemFilePath, PGPPublicKey recipientKeyParam) throws Exception {
+    public static PgpMessageWriter createCustom(String signersPrivatePemFilePath, PGPPublicKey encryptionKey) throws Exception {
         PGPContentSignerBuilder signerBuilder =
                 new CustomContentSignerBuilder(
                         PublicKeyAlgorithmTags.RSA_SIGN,
                         HashAlgorithmTags.SHA256,
-                        pemFilePath);
+                        signersPrivatePemFilePath);
 
         PGPSignatureGenerator sigGen = new PGPSignatureGenerator(signerBuilder);
         sigGen.init(PGPSignature.BINARY_DOCUMENT, null);
 
-        return new PgpMessageWriter(sigGen, recipientKeyParam);
+        return new PgpMessageWriter(sigGen, encryptionKey);
     }
 
     public PgpMessageWriter(PGPSignatureGenerator sigGen, PGPPublicKey recipientKey){

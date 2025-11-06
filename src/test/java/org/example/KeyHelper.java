@@ -2,8 +2,7 @@ package org.example;
 
 import org.bouncycastle.openpgp.*;
 import org.bouncycastle.openpgp.operator.bc.BcKeyFingerprintCalculator;
-import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder;
-import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
+import org.bouncycastle.util.encoders.Hex;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
@@ -13,7 +12,7 @@ class KeyHelper {
 
     private KeyHelper(){}
 
-    static PGPPrivateKey loadPrivateKey(String filePath) throws Exception {
+    static PGPPrivateKey loadPrivateKey(String filePath, int keyFlag) throws Exception {
         try (InputStream keyIn = new BufferedInputStream(new FileInputStream("src\\test\\resources\\org\\example\\" + filePath))) {
             PGPSecretKeyRingCollection keyRings =
                     new PGPSecretKeyRingCollection(
@@ -22,18 +21,17 @@ class KeyHelper {
 
             for (PGPSecretKeyRing ring : keyRings) {
                 for (PGPSecretKey key : ring) {
-                    if (key.isSigningKey()) {
-                        return key.extractPrivateKey(
-                                new BcPBESecretKeyDecryptorBuilder(
-                                        new BcPGPDigestCalculatorProvider()).build("".toCharArray()));
+                    if ((key.getPublicKey().getSignatures().next().getHashedSubPackets().getKeyFlags() & keyFlag) != 0) {
+                        System.out.println("Key with fingerprint: " + Hex.toHexString(key.getPublicKey().getFingerprint()) + " features: " + Integer.toHexString(key.getPublicKey().getSignatures().next().getHashedSubPackets().getKeyFlags()));
+                        return key.extractPrivateKey(null);
                     }
                 }
             }
         }
-        throw new IllegalArgumentException("No signing key found in " + filePath);
+        throw new IllegalArgumentException("No key found in " + filePath);
     }
 
-    static PGPPublicKey loadPublicKey(String filePath) throws Exception {
+    static PGPPublicKey loadPublicKey(String filePath, int keyFlag) throws Exception {
         try (InputStream keyIn = new BufferedInputStream(new FileInputStream("src\\test\\resources\\org\\example\\" + filePath))) {
             PGPPublicKeyRingCollection keyRings =
                     new PGPPublicKeyRingCollection(
@@ -42,12 +40,13 @@ class KeyHelper {
 
             for (PGPPublicKeyRing ring : keyRings) {
                 for (PGPPublicKey key : ring) {
-                    if (key.isEncryptionKey()) {
+                    if ((key.getSignatures().next().getHashedSubPackets().getKeyFlags() & keyFlag) != 0) {
+                        System.out.println("Key with fingerprint: " + Hex.toHexString(key.getFingerprint()) + " features: " + Integer.toHexString(key.getSignatures().next().getHashedSubPackets().getKeyFlags()));
                         return key;
                     }
                 }
             }
         }
-        throw new IllegalArgumentException("No encryption key found in " + filePath);
+        throw new IllegalArgumentException("No key found in " + filePath);
     }
 }
