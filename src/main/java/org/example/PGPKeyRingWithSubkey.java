@@ -41,7 +41,7 @@ public class PGPKeyRingWithSubkey {
         Security.addProvider(new BouncyCastleProvider());
 
         // === Create PGP key pairs ===
-        PGPKeyPair pgpSignKeyPair = new JcaPGPKeyPair(PublicKeyAlgorithmTags.RSA_SIGN, signingKeyPair, creationDate);
+        PGPKeyPair pgpSignKeyPair = new JcaPublicOnlyPGPKeyPair(PublicKeyAlgorithmTags.RSA_SIGN, signingKeyPair.getPublic(), creationDate);
 
         // === Create a digest calculator for checksums and signatures ===
         PGPDigestCalculator sha1Calc = new JcaPGPDigestCalculatorProviderBuilder()
@@ -53,7 +53,7 @@ public class PGPKeyRingWithSubkey {
                 new CustomContentSignerBuilder(
                         PublicKeyAlgorithmTags.RSA_SIGN,
                         HashAlgorithmTags.SHA256,
-                        signingKeyPair.getPrivate());
+                        "src/test/resources/org/example/bob-private-sign.pem");
 
 
         // === Define hashed subpackets (capabilities, algorithms, etc.) ===
@@ -109,7 +109,7 @@ public class PGPKeyRingWithSubkey {
 
         // === Generate keyrings ===
         PGPPublicKeyRing pubRing = keyRingGen.generatePublicKeyRing();
-        PGPSecretKeyRing secRing = keyRingGen.generateSecretKeyRing();
+        //PGPSecretKeyRing secRing = keyRingGen.generateSecretKeyRing();
 
         // === Output armored public and secret keys ===
         try (OutputStream out = new ArmoredOutputStream(System.out)) {
@@ -136,7 +136,8 @@ public class PGPKeyRingWithSubkey {
         String userId = "Bob Babbage <bob@openpgp.example>";
         Date creationDate = Date.from(Instant.parse("2019-10-15T10:18:26Z"));
 
-        generatePGPKeyRing(signingKeyPair, null, userId, creationDate);
+        //generatePGPKeyRing(signingKeyPair, null, userId, creationDate);
+        generatePGPKeyRing(actualKeyPair, null, userId, creationDate);
         //generatePGPKeyRing(signingKeyPair, encryptionKeyPair, userId, creationDate);
     }
 }
