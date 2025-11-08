@@ -83,7 +83,7 @@ public class CustomContentSignerBuilder implements PGPContentSignerBuilder {
             @Override
             public long getKeyID() {
                 try {
-                    return KeyIdCalculator.getKeyId(privateKey, Date.from(Instant.parse("2019-10-15T10:18:26Z")));
+                    return KeyIdCalculator.getKeyId(privateKey, Date.from(Instant.parse("2019-10-15T10:18:26Z")), keyAlgorithm);
                 } catch (IOException | PGPException e) {
                     throw new RuntimeException(e);
                 }

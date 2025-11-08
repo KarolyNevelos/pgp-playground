@@ -129,7 +129,7 @@ public class PGPKeyRingWithSubkey {
 //        kpg.initialize(4096);
 
         //KeyPair signingKeyPair = kpg.generateKeyPair();
-        KeyPair signingKeyPair = PGPKeyConversionUtils.pemFileToKeyPair(Files.readString(Path.of("src/test/resources/org/example/bob-private.pem")));
+        KeyPair signingKeyPair = PGPKeyConversionUtils.pemFileToKeyPair(Files.readString(Path.of("src/test/resources/org/example/bob-private-sign.pem")));
         KeyPair actualKeyPair = new KeyPair(signingKeyPair.getPublic(), null);
 //        KeyPair encryptionKeyPair = kpg.generateKeyPair();
 

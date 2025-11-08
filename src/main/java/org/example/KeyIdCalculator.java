@@ -1,6 +1,5 @@
 package org.example;
 
-import org.bouncycastle.bcpg.PublicKeyAlgorithmTags;
 import org.bouncycastle.bcpg.PublicKeyPacket;
 import org.bouncycastle.bcpg.RSAPublicBCPGKey;
 import org.bouncycastle.openpgp.PGPException;
@@ -17,7 +16,7 @@ import java.util.Date;
 public class KeyIdCalculator {
     private KeyIdCalculator(){}
 
-    static long getKeyId(PrivateKey privateKey, Date creationDate) throws IOException, PGPException {
+    static long getKeyId(PrivateKey privateKey, Date creationDate, int algorithm) throws IOException, PGPException {
         BigInteger n = ((RSAPrivateKey)privateKey).getModulus(); // modulus
         BigInteger e = ((RSAPrivateCrtKey) privateKey).getPublicExponent();
 
@@ -27,7 +26,7 @@ public class KeyIdCalculator {
         // Create a V4 PublicKeyPacket
         PublicKeyPacket pubKeyPacket = new PublicKeyPacket(
                 4,                             // Version 4
-                PublicKeyAlgorithmTags.RSA_GENERAL, // FIXME this should be the same as in the real public key
+                algorithm,
                 creationDate,                    // Creation time
                 rsaKey
         );
