@@ -32,6 +32,7 @@ public class ExternalPGPPublicKeyGeneratorTest {
 
         PGPPublicKeyRing ring = ExternalPGPPublicKeyGenerator.generate(
                 rsaPub,
+                null,
                 "Test User <test@example.com>",
                 new Date(),
                 new SignerImpl(rsaPriv)
@@ -54,18 +55,22 @@ public class ExternalPGPPublicKeyGeneratorTest {
     @Test
     void testGenerateBobsPublicKey() throws Exception {
 
-        KeyPair kp = PGPKeyConversionUtils.pemFileToKeyPair(Files.readString(Path.of("src/test/resources/org/example/bob-private-sign.pem")));
-        RSAPublicKey rsaPub = (RSAPublicKey) kp.getPublic();
-        PrivateKey rsaPriv = kp.getPrivate();
+        KeyPair keyPairSign = PGPKeyConversionUtils.pemFileToKeyPair(Files.readString(Path.of("src/test/resources/org/example/bob-private-sign.pem")));
+        RSAPublicKey signPublic = (RSAPublicKey) keyPairSign.getPublic();
+        PrivateKey signPrivate = keyPairSign.getPrivate();
+
+        KeyPair keyPairEncrypt = PGPKeyConversionUtils.pemFileToKeyPair(Files.readString(Path.of("src/test/resources/org/example/bob-private-encrypt.pem")));
+        RSAPublicKey encryptPublic = (RSAPublicKey) keyPairEncrypt.getPublic();
 
         String userId = "Bob Babbage <bob@openpgp.example>";
         Date creationDate = Date.from(Instant.parse("2019-10-15T10:18:26Z"));
 
         PGPPublicKeyRing ring = ExternalPGPPublicKeyGenerator.generate(
-                rsaPub,
+                signPublic,
+                encryptPublic,
                 userId,
                 creationDate,
-                new SignerImpl(rsaPriv)
+                new SignerImpl(signPrivate)
         );
 
         assertNotNull(ring);
