@@ -15,6 +15,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Date;
+import java.util.function.Function;
 
 public class PgpMessageWriter {
 
@@ -32,12 +33,13 @@ public class PgpMessageWriter {
         return new PgpMessageWriter(sigGen, encryptionKey);
     }
 
-    public static PgpMessageWriter createCustom(String signersPrivatePemFilePath, PGPPublicKey encryptionKey) throws Exception {
+    public static PgpMessageWriter createCustom(Function<byte[], byte[]> externalSigner, long keyId, PGPPublicKey encryptionKey) throws Exception {
         PGPContentSignerBuilder signerBuilder =
-                new CustomContentSignerBuilder(
+                new ExternalPGPContentSignerBuilder(
                         PublicKeyAlgorithmTags.RSA_SIGN,
                         HashAlgorithmTags.SHA256,
-                        signersPrivatePemFilePath);
+                        keyId,
+                        externalSigner);
 
         PGPSignatureGenerator sigGen = new PGPSignatureGenerator(signerBuilder);
         sigGen.init(PGPSignature.BINARY_DOCUMENT, null);

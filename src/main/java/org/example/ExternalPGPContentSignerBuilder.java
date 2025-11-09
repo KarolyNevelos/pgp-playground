@@ -10,22 +10,23 @@ public class ExternalPGPContentSignerBuilder implements PGPContentSignerBuilder 
     private final int keyAlgorithm;
     private final int hashAlgorithm;
     private final Function<byte[], byte[]> externalSigner;
-    private final long keyid;
+    private final long keyId;
 
     public ExternalPGPContentSignerBuilder(
             int keyAlgorithm,
             int hashAlgorithm,
-            Function<byte[], byte[]> externalSigner, long keyid
+            long keyId,
+            Function<byte[], byte[]> externalSigner
     ) {
         this.keyAlgorithm = keyAlgorithm;
         this.hashAlgorithm = hashAlgorithm;
         this.externalSigner = externalSigner;
-        this.keyid = keyid;
+        this.keyId = keyId;
     }
 
     @Override
     public PGPContentSigner build(int signatureType, PGPPrivateKey privateKey) {
-        return new ExternalPGPContentSigner(keyAlgorithm, hashAlgorithm, signatureType, keyid, externalSigner);
+        return new ExternalPGPContentSigner(keyAlgorithm, hashAlgorithm, signatureType, keyId, externalSigner);
     }
 
 }

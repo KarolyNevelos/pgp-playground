@@ -35,11 +35,4 @@ class PGPKeyConversionUtilsTest {
         System.out.println(pemPublicKey2);
     }
 
-    @Test
-    void privatePemKeyToPublicPgpKey() throws Exception {
-        String pemPrivateKey = Files.readString(Path.of("src/test/resources/org/example/bob-private-sign.pem"));
-        String pgpPublicKey = PGPKeyConversionUtils.pemPublicToPgp(pemPrivateKey, Date.from(Instant.parse("2019-10-15T10:18:26Z")), "Bob Babbage <bob@openpgp.example>");
-
-        System.out.println(pgpPublicKey);
-    }
 }

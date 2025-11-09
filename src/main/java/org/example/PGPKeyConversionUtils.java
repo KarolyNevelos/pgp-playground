@@ -62,7 +62,10 @@ public class PGPKeyConversionUtils {
     /**
      * Converts a PEM-encoded private key ("-----BEGIN PRIVATE KEY-----")
      * to an ASCII-armored OpenPGP private key block.
+     *
+     * @deprecated The functionality is not complete, it is not handling subkeys correctly
      */
+    @Deprecated
     public static String pemPrivateToPgp(String pemPrivateKey, Date date, String identity) throws Exception {
 
         // Wrap into PGP keys
@@ -140,46 +143,6 @@ public class PGPKeyConversionUtils {
             }
         }
         throw new IllegalArgumentException("Private key not found with position " + position);
-    }
-
-    /**
-     * Converts a PEM-encoded private key ("-----BEGIN PRIVATE KEY-----")
-     * to an ASCII-armored OpenPGP public key block.
-     */
-    public static String pemPublicToPgp(String pemPrivateKey, Date date, String identity) throws Exception {
-        // Wrap into PGP keys
-        PGPKeyPair pgpKeyPair = new JcaPGPKeyPair(
-                PGPPublicKey.RSA_GENERAL,
-                pemFileToKeyPair(pemPrivateKey),
-                date
-        );
-
-        // Create digest calculator (for metadata checksums)
-        PGPDigestCalculator sha1Calc =
-                new JcaPGPDigestCalculatorProviderBuilder().build().get(HashAlgorithmTags.SHA1);
-
-        // Create unencrypted PGP key ring generator (pass null encryptor)
-        PGPKeyRingGenerator keyRingGen = new PGPKeyRingGenerator(
-                PGPSignature.POSITIVE_CERTIFICATION,
-                pgpKeyPair,
-                identity,
-                sha1Calc,
-                null,   // no attributes
-                null,   // no subpackets
-                new JcaPGPContentSignerBuilder(
-                        pgpKeyPair.getPublicKey().getAlgorithm(),
-                        HashAlgorithmTags.SHA256
-                ),
-                null // <-- no secret key encryption
-        );
-
-        // Generate armored output
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (ArmoredOutputStream aos = new ArmoredOutputStream(baos)) {
-            keyRingGen.generatePublicKeyRing().encode(aos);
-        }
-
-        return baos.toString();
     }
 
     // ------------------------------------------------------------------------

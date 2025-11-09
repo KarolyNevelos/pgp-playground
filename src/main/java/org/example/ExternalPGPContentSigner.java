@@ -20,7 +20,9 @@ public class ExternalPGPContentSigner implements PGPContentSigner {
     public ExternalPGPContentSigner(
             int keyAlgorithm,
             int hashAlgorithm,
-            int signatureType, long keyId, Function<byte[], byte[]> externalSigner) {
+            int signatureType,
+            long keyId,
+            Function<byte[], byte[]> externalSigner) {
         this.keyAlgorithm = keyAlgorithm;
         this.hashAlgorithm = hashAlgorithm;
         this.externalSigner = externalSigner;
@@ -56,8 +58,7 @@ public class ExternalPGPContentSigner implements PGPContentSigner {
     @Override
     public byte[] getSignature() {
         byte[] data = buffer.toByteArray();
-        byte[] digest = digest(data, hashAlgorithm);
-        return externalSigner.apply(digest);
+        return externalSigner.apply(data);
     }
 
     @Override

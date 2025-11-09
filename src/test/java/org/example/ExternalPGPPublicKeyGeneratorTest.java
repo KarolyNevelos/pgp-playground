@@ -1,7 +1,9 @@
 package org.example;
 
 import org.bouncycastle.bcpg.ArmoredOutputStream;
+import org.bouncycastle.bcpg.sig.KeyFlags;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
+import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -10,12 +12,11 @@ import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
-import java.security.Signature;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Instant;
 import java.util.Date;
-import java.util.function.Function;
 
+import static org.assertj.core.api.BDDAssertions.then;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -31,11 +32,11 @@ public class ExternalPGPPublicKeyGeneratorTest {
         PrivateKey rsaPriv = kp.getPrivate();
 
         PGPPublicKeyRing ring = ExternalPGPPublicKeyGenerator.generate(
+                "Test User <test@example.com>", new Date(), new SignWithRsaPrivateKey(rsaPriv),
                 rsaPub,
+                KeyFlags.SIGN_DATA | KeyFlags.CERTIFY_OTHER,
                 null,
-                "Test User <test@example.com>",
-                new Date(),
-                new SignerImpl(rsaPriv)
+                0
         );
 
         assertNotNull(ring);
@@ -66,15 +67,17 @@ public class ExternalPGPPublicKeyGeneratorTest {
         Date creationDate = Date.from(Instant.parse("2019-10-15T10:18:26Z"));
 
         PGPPublicKeyRing ring = ExternalPGPPublicKeyGenerator.generate(
+                userId, creationDate, new SignWithRsaPrivateKey(signPrivate),
                 signPublic,
+                KeyFlags.SIGN_DATA | KeyFlags.CERTIFY_OTHER,
                 encryptPublic,
-                userId,
-                creationDate,
-                new SignerImpl(signPrivate)
+                KeyFlags.ENCRYPT_COMMS | KeyFlags.ENCRYPT_STORAGE
         );
 
         assertNotNull(ring);
-        assertTrue(ring.getPublicKeys().hasNext());
+        then(ring.size()).isEqualTo(2);
+        then(ring.getPublicKey(Hex.decode("D1A66E1A23B182C9980F788CFBFCC82A015E7330"))).isNotNull();
+        then(ring.getPublicKey(Hex.decode("1DDCE15F09217CEE2F3B37607C2FAA4DF93C37B2"))).isNotNull();
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ArmoredOutputStream armorOut = new ArmoredOutputStream(out);
@@ -87,23 +90,4 @@ public class ExternalPGPPublicKeyGeneratorTest {
         assertTrue(armoredKey.contains("BEGIN PGP PUBLIC KEY BLOCK"));
     }
 
-    private static class SignerImpl implements Function<byte[], byte[]> {
-        private final PrivateKey rsaPriv;
-
-        public SignerImpl(PrivateKey rsaPriv) {
-            this.rsaPriv = rsaPriv;
-        }
-
-        @Override
-        public byte[] apply(byte[] digest) {
-            try {
-                Signature sig = Signature.getInstance("SHA256withRSA");
-                sig.initSign(rsaPriv);
-                sig.update(digest);
-                return sig.sign();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
 }

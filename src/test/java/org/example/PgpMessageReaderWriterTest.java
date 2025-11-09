@@ -6,6 +6,10 @@ import org.bouncycastle.openpgp.PGPPublicKey;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyPair;
+import java.security.PrivateKey;
 
 import static org.assertj.core.api.Assertions.from;
 import static org.assertj.core.api.BDDAssertions.then;
@@ -65,7 +69,10 @@ public class PgpMessageReaderWriterTest {
     @Test
     void customWriteBobStandardReadCooper() throws Exception {
         // Given
-        PgpMessageWriter pgpMessageWriter = PgpMessageWriter.createCustom("src\\test\\resources\\org\\example\\bob-private-sign.pem", cooperPublicEncryptKey);
+        KeyPair keyPairSign = PGPKeyConversionUtils.pemFileToKeyPair(Files.readString(Path.of("src/test/resources/org/example/bob-private-sign.pem")));
+        PrivateKey signPrivate = keyPairSign.getPrivate();
+
+        PgpMessageWriter pgpMessageWriter = PgpMessageWriter.createCustom(new SignWithRsaPrivateKey(signPrivate), bobPublicSignKey.getKeyID(), cooperPublicEncryptKey);
         PgpMessageReader pgpMessageReader = PgpMessageReader.createStandard(bobPublicSignKey, cooperPrivateEncryptKey);
         String encrypted = pgpMessageWriter.encryptAndSignMessage(MESSAGE_TEXT);
         System.out.println(encrypted);
@@ -101,8 +108,14 @@ public class PgpMessageReaderWriterTest {
     @Test
     void customWriteBobCustomReadBob() throws Exception {
         // Given
-        PgpMessageWriter pgpMessageWriter = PgpMessageWriter.createCustom("src\\test\\resources\\org\\example\\bob-private-encrypt.pem", bobPublicSignKey);
-        PgpMessageReader pgpMessageReader = PgpMessageReader.createCustom(bobPublicEncryptKey, "src\\test\\resources\\org\\example\\bob-private-sign.pem");
+        KeyPair keyPairSign = PGPKeyConversionUtils.pemFileToKeyPair(Files.readString(Path.of("src/test/resources/org/example/bob-private-sign.pem")));
+        PrivateKey signPrivate = keyPairSign.getPrivate();
+
+        KeyPair keyPairEncrypt = PGPKeyConversionUtils.pemFileToKeyPair(Files.readString(Path.of("src/test/resources/org/example/bob-private-encrypt.pem")));
+        PrivateKey encryptPrivate = keyPairEncrypt.getPrivate();
+
+        PgpMessageWriter pgpMessageWriter = PgpMessageWriter.createCustom(new SignWithRsaPrivateKey(signPrivate), bobPublicSignKey.getKeyID(), bobPublicEncryptKey);
+        PgpMessageReader pgpMessageReader = PgpMessageReader.createCustom(bobPublicSignKey, "src\\test\\resources\\org\\example\\bob-private-encrypt.pem");
         String encrypted = pgpMessageWriter.encryptAndSignMessage(MESSAGE_TEXT);
         System.out.println(encrypted);
 
